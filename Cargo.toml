@@ -28,3 +28,4 @@ reqwest-websocket = "0.4.4"
 thiserror = "2.0.9"
 flate2 = { version = "1.0.28", features = ["zlib"] }
 futures = "0.3.31"
+regex = "1"

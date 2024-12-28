@@ -5,6 +5,7 @@ use auth_request::openliveauth;
 use futures::lock::Mutex;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use tokio::sync::oneshot::Sender;
 
 pub mod auth_request;
 pub mod proto;
@@ -68,7 +69,23 @@ impl OpenLive {
         }
     }
     // 项目关闭
-    pub async fn end(&mut self) {}
+    pub async fn end(&mut self) {
+        let j = json!({"app_id":self.app_id.clone(), "game_id":self.game_id});
+        let json = serde_json::to_string(&j).unwrap();
+        let res = openliveauth(
+            &urljoin(API_END),
+            json,
+            self.access_key_id.clone(),
+            self.access_secret_key.clone(),
+        )
+        .await
+        .expect("关闭访问失败！！！");
+        let v = res
+            .json::<serde_json::Value>()
+            .await
+            .expect("关闭项目解析失败！！！");
+        println!("{:?}", v);
+    }
     // 项目批量心跳
     pub async fn batch_heartbeat_start(&mut self) {}
     // 项目心跳
@@ -122,6 +139,7 @@ impl OpenLive {
             self.auth_body = Some(a.data.websocket_info.auth_body);
             let a = a.data.websocket_info.wss_link.first().unwrap();
             self.wsaddr = Some(a.to_string());
+            // self.channel = Some(Arc::new(Mutex::new(serder)));
             // println!("主要配置:{:#?}", self);
             // 启动项目心跳包
             let _h = self.heartbeat_start().await;

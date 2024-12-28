@@ -1,6 +1,9 @@
-use crate::openlive::proto::{
-    CDM, CGuard, CLike, CSendGift, CSuperChat, CSuperChatDel, LIVE_OPEN_PLATFORM_SEND_GIFT,
-    LiveOpenPlatformCmd, RawProto,
+use crate::{
+    api::control::search_paly,
+    openlive::proto::{
+        CDM, CGuard, CLike, CSendGift, CSuperChat, CSuperChatDel, LIVE_OPEN_PLATFORM_SEND_GIFT,
+        LiveOpenPlatformCmd, RawProto,
+    },
 };
 
 use flate2::write::ZlibDecoder;
@@ -36,7 +39,7 @@ pub async fn msgthead(bytes: Vec<u8>) {
             match String::from_utf8(proto.body) {
                 Ok(json) => match serde_json::from_str::<serde_json::Value>(&json) {
                     Ok(v) => {
-                        println!("{:?}", v);
+                        // println!("数据包{:?}", v);
                         if let Some((_, v)) = v.as_object().and_then(|m| m.iter().next()) {
                             if let Some(cmd) = v.as_str() {
                                 match cmd {
@@ -45,11 +48,17 @@ pub async fn msgthead(bytes: Vec<u8>) {
                                         if let Ok(pcmd) =
                                             serde_json::from_str::<LiveOpenPlatformCmd<CDM>>(&json)
                                         {
-                                            println!("消息{:?}", pcmd.data.msg);
-                                            // for handle in cmd_handles.read().await.iter() {
-                                            //     let params = params.clone();
-                                            //     handle.handle_dm(pcmd.data.clone(), params).await;
-                                            // }
+                                            let dm = pcmd.data.msg;
+                                            let re = regex::Regex::new(r"^点歌(.+)").unwrap();
+                                            let Some(a) = re.captures(&dm) else {
+                                                // 不是点歌开头 后期加入读弹幕
+                                                println!("no match!{:?}", dm);
+                                                return;
+                                            };
+                                            let musicname =
+                                                a.get(1).unwrap().as_str().trim().to_string();
+                                            // println!("c{:#?}", c);
+                                            let _ = search_paly(pcmd.data.uname, musicname);
                                         }
                                     }
                                     // 获取礼物信息

@@ -1,6 +1,5 @@
-use std::thread::sleep;
-
 use bilive_danmu_core::openlive;
+use tokio::signal;
 
 #[tokio::main]
 async fn main() {
@@ -17,5 +16,12 @@ async fn main() {
     op.start().await.expect("Error:启动失败!!!");
     // 直播间长连
     // 关闭项目
-    sleep(std::time::Duration::from_secs(120));
+    // 等待消息
+    // 当按下 Ctrl+C 时，这个 future 会完成
+    let t = tokio::spawn(async move {
+        signal::ctrl_c().await.expect("failed to listen for ctrl+c");
+        println!("Ctrl+C 强制退出!");
+        let _a = op.end().await;
+    });
+    t.await.unwrap();
 }
