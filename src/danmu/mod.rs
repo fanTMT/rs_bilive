@@ -3,11 +3,35 @@ use crate::openlive::proto::{
     LiveOpenPlatformCmd, RawProto,
 };
 
+use flate2::write::ZlibDecoder;
+use std::io::Write;
+
 /// 消息解析
 pub async fn msgthead(bytes: Vec<u8>) {
     if let Ok(proto) = RawProto::try_from(bytes) {
         // println!("返回的消息:{:?}", proto);
-        if proto.version == 2 {}
+        if proto.version == 2 {
+            //处理压缩
+            let mut writer = Vec::new();
+            let mut z = ZlibDecoder::new(writer);
+            let r = z.write_all(&proto.body);
+            if r.is_err() {
+                return;
+            }
+            let r = z.finish();
+            if r.is_err() {
+                return;
+            }
+            writer = r.unwrap();
+            //递归消息处理
+            // handle(writer, raw_handles, op_handles, cmd_handles, params.clone());
+            return;
+        }
+        // for op in op_handles.read().await.iter() {
+        //     let proto: RawProto = proto.clone();
+        //     let params = params.clone();
+        //     op.handle(proto, params).await;
+        // }
         if proto.operation == 5 {
             match String::from_utf8(proto.body) {
                 Ok(json) => match serde_json::from_str::<serde_json::Value>(&json) {
