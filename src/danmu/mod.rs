@@ -1,5 +1,5 @@
 use crate::{
-    api::control::search_paly,
+    api::control::{search_paly, skip_next},
     openlive::proto::{
         CDM, CGuard, CLike, CSendGift, CSuperChat, CSuperChatDel, LIVE_OPEN_PLATFORM_SEND_GIFT,
         LiveOpenPlatformCmd, RawProto,
@@ -49,16 +49,23 @@ pub async fn msgthead(bytes: Vec<u8>) {
                                             serde_json::from_str::<LiveOpenPlatformCmd<CDM>>(&json)
                                         {
                                             let dm = pcmd.data.msg;
-                                            let re = regex::Regex::new(r"^点歌(.+)").unwrap();
+                                            let re =
+                                                regex::Regex::new(r"点歌\s+(\S+)(?:\s+(\S+))?")
+                                                    .unwrap();
                                             let Some(a) = re.captures(&dm) else {
-                                                // 不是点歌开头 后期加入读弹幕
-                                                println!("no match!{:?}", dm);
+                                                if dm.starts_with("切歌") {
+                                                    skip_next();
+                                                } else {
+                                                    // 不是点歌开头 后期加入读弹幕
+                                                    println!("no match!{:?}", dm);
+                                                }
                                                 return;
                                             };
                                             let musicname =
                                                 a.get(1).unwrap().as_str().trim().to_string();
+                                            let singer = a.get(2).map_or("", |m| m.as_str());
                                             // println!("c{:#?}", c);
-                                            let _ = search_paly(pcmd.data.uname, musicname);
+                                            let _ = search_paly(pcmd.data.uname, musicname, singer);
                                         }
                                     }
                                     // 获取礼物信息

@@ -51,17 +51,34 @@ pub struct OpenLive {
 }
 
 impl OpenLive {
-    pub fn new(
-        code: String,
-        access_key_id: String,
-        access_secret_key: String,
-        app_id: usize,
-    ) -> OpenLive {
+    pub fn default(code: &str) -> OpenLive {
         OpenLive {
             is_run: false,
-            code,
-            access_key_id,
-            access_secret_key,
+            code: code.to_string(),
+            access_key_id: "3mwTEo1aKN0EiXDlRcGSbMH6".to_string(),
+            access_secret_key: "FZZ248WMjuIEHJDBe7tx9om2krP1mI".to_string(),
+            app_id: 1733438858944,
+            game_id: String::new(),
+            auth_body: None,
+            wsaddr: None,
+        }
+    }
+    pub fn new(
+        code: &str,
+        mut access_key_id: &str,
+        mut access_secret_key: &str,
+        mut app_id: usize,
+    ) -> OpenLive {
+        if access_key_id.is_empty() && access_secret_key.is_empty() && app_id == 0 {
+            access_key_id = "3mwTEo1aKN0EiXDlRcGSbMH6";
+            access_secret_key = "FZZ248WMjuIEHJDBe7tx9om2krP1mI";
+            app_id = 1733438858944;
+        }
+        OpenLive {
+            is_run: false,
+            code: code.to_string(),
+            access_key_id: access_key_id.to_string(),
+            access_secret_key: access_secret_key.to_string(),
             app_id,
             game_id: String::new(),
             auth_body: None,
@@ -130,7 +147,7 @@ impl OpenLive {
             self.access_secret_key.clone(),
         )
         .await?;
-        let a = res.json::<StartOut>().await?;
+        let a = res.json::<StartOut>().await.expect("请检查【身份码】");
         // println!("{:#?}", a);
         if a.code == 0 {
             // println!("game_id:{:?}", a.data.game_info.game_id);
@@ -140,7 +157,7 @@ impl OpenLive {
             let a = a.data.websocket_info.wss_link.first().unwrap();
             self.wsaddr = Some(a.to_string());
             // self.channel = Some(Arc::new(Mutex::new(serder)));
-            // println!("主要配置:{:#?}", self);
+            // println!("主要配置:{:#?}", self); // -----------------------------------------------------------------------------
             // 启动项目心跳包
             let _h = self.heartbeat_start().await;
             // 启动直播间长连
